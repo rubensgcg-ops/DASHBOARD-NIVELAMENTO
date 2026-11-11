@@ -236,8 +236,8 @@
   <div class="controls-overlay">
     <div id="statusDot" class="status-dot"></div>
     <select id="sheetTabSelect" onchange="switchTab(this.value)">
-      <option value="0">Aba: Terça</option>
-      <option value="quinta">Aba: Quinta</option>
+      <option value="Terça">Aba: Terça</option>
+      <option value="Quinta">Aba: Quinta</option>
     </select>
     <button onclick="toggleFullscreen()">Tela Cheia</button>
   </div>
@@ -268,16 +268,18 @@
 
   <script>
     const SPREADSHEET_ID = '1rcF9zIcaZmY9Lmyli1Sd59c84-RIDSZKkxvJYNn6ThM';
-    let currentGid = '0';
+    let currentSheetName = 'Terça';
     let lastRenderedHash = '';
 
     function switchTab(val) {
-      currentGid = val;
+      currentSheetName = val;
+      lastRenderedHash = ''; // Força a atualização visual ao trocar de aba
       fetchData();
     }
 
     async function fetchData() {
-      const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&tq=${encodeURIComponent('SELECT A, B, C, D')}`;
+      // Passa o parâmetro `sheet` com o nome exato da aba selecionada
+      const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent(currentSheetName)}&tqx=out:json&tq=${encodeURIComponent('SELECT A, B, C, D')}`;
       
       try {
         const res = await fetch(gvizUrl);
@@ -301,7 +303,7 @@
     }
 
     async function fetchCSVFallback() {
-      const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv`;
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(currentSheetName)}`;
       try {
         const res = await fetch(csvUrl);
         if (!res.ok) throw new Error('CSV negado');
@@ -437,5 +439,3 @@
   </script>
 </body>
 </html>
-
-```
