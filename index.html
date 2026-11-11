@@ -6,7 +6,7 @@
   <title>Fila de Dança - Projetor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;800;900&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -36,7 +36,7 @@
       opacity: 0.15;
       transition: opacity 0.3s ease;
       z-index: 100;
-      background: rgba(4, 13, 22, 0.9);
+      background: rgba(4, 13, 22, 0.95);
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 12px;
       padding: 10px 14px;
@@ -48,27 +48,18 @@
     .controls-overlay:hover {
       opacity: 1;
     }
-    .controls-overlay input {
+    .controls-overlay select, .controls-overlay button {
       background: #091d2d;
       border: 1px solid #1c3c54;
       color: #fff;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      width: 260px;
-    }
-    .controls-overlay button {
-      background: #0077b6;
-      border: none;
-      color: white;
       padding: 6px 12px;
       border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
       font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
     }
     .controls-overlay button:hover {
-      background: #0096c7;
+      background: #0077b6;
     }
     .status-dot {
       width: 10px;
@@ -92,7 +83,7 @@
     /* Blocos Estilizados */
     .card-block {
       background: linear-gradient(145deg, #0f344d 0%, #082133 100%);
-      border: 2px solid rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.2);
       border-radius: 24px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.6);
       display: flex;
@@ -108,13 +99,13 @@
     .card-block.current {
       flex: 1.3;
       border-color: #00a8e8;
-      box-shadow: 0 0 40px rgba(0, 168, 232, 0.25);
+      box-shadow: 0 0 40px rgba(0, 168, 232, 0.3);
     }
 
     /* Bloco 2: PRÓXIMOS */
     .card-block.next {
       flex: 1;
-      border-color: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.15);
     }
 
     .block-header {
@@ -137,13 +128,13 @@
     }
     .current-name {
       font-family: 'Outfit', sans-serif;
-      font-size: clamp(3.2rem, 5.5vw, 6rem);
+      font-size: clamp(3.5rem, 6vw, 6.5rem);
       font-weight: 900;
       color: #ffffff;
       line-height: 1;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      text-shadow: 0 4px 20px rgba(0,0,0,0.8);
+      text-shadow: 0 4px 20px rgba(0,0,0,0.9);
     }
 
     /* Lista dos Próximos */
@@ -164,15 +155,15 @@
     }
     .next-name {
       font-family: 'Outfit', sans-serif;
-      font-size: clamp(2rem, 3.2vw, 3.8rem);
+      font-size: clamp(2.2rem, 3.5vw, 4rem);
       font-weight: 800;
       color: #ffffff;
       text-transform: uppercase;
       letter-spacing: 0.03em;
-      text-shadow: 0 3px 15px rgba(0,0,0,0.7);
+      text-shadow: 0 3px 15px rgba(0,0,0,0.8);
     }
 
-    /* Badges com alto contraste */
+    /* Badges com Cores Fiéis à Planilha */
     .badge-group {
       display: flex;
       gap: 1vw;
@@ -184,19 +175,35 @@
       font-family: 'Plus Jakarta Sans', sans-serif;
       font-size: clamp(1.1rem, 1.6vw, 1.8rem);
       font-weight: 800;
-      padding: 0.4em 1em;
+      padding: 0.4em 1.1em;
       border-radius: 50px;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border: 1px solid rgba(0,0,0,0.1);
     }
 
-    /* Cores das Badges */
-    .badge-condutor { background-color: #22c55e; color: #022c22; }
-    .badge-conduzido { background-color: #f43f5e; color: #4c0519; }
-    .badge-iniciante { background-color: #facc15; color: #422006; }
-    .badge-intermediario { background-color: #38bdf8; color: #082f49; }
-    .badge-avancado { background-color: #a855f7; color: #3b0764; }
+    /* Estilos baseados nas cores exatas da planilha */
+    .badge-condutor { 
+      background-color: #a8dadc; 
+      color: #1d3557; 
+    }
+    .badge-conduzido { 
+      background-color: #f4acb7; 
+      color: #590d22; 
+    }
+    .badge-iniciante { 
+      background-color: #c6efce; 
+      color: #006100; 
+    }
+    .badge-intermediario { 
+      background-color: #ffeb9c; 
+      color: #9c6500; 
+    }
+    .badge-avancado { 
+      background-color: #e2afff; 
+      color: #4a154b; 
+    }
 
     .empty-state {
       font-size: clamp(1.4rem, 2vw, 2.2rem);
@@ -261,21 +268,15 @@
 
   <script>
     const SPREADSHEET_ID = '1rcF9zIcaZmY9Lmyli1Sd59c84-RIDSZKkxvJYNn6ThM';
-    let currentGid = '0'; // Padrão: Terça (gid=0)
+    let currentGid = '0';
     let lastRenderedHash = '';
 
     function switchTab(val) {
-      if (val === 'quinta') {
-        // Se a aba Quinta tiver um gid específico, pode alterar aqui
-        currentGid = 'quinta';
-      } else {
-        currentGid = val;
-      }
+      currentGid = val;
       fetchData();
     }
 
     async function fetchData() {
-      // Tenta consultar via Google Visualization Query API
       const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&tq=${encodeURIComponent('SELECT A, B, C, D')}`;
       
       try {
@@ -314,6 +315,14 @@
       }
     }
 
+    function normalizePapel(text) {
+      if (!text) return '';
+      const clean = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (clean.includes('condutor')) return 'CONDUTOR';
+      if (clean.includes('conduz')) return 'CONDUZIDO';
+      return text.toUpperCase();
+    }
+
     function parseGVizData(data) {
       const rows = data.table.rows;
       const people = [];
@@ -325,9 +334,9 @@
         const avaliadoVal = c[0] ? (c[0].v === true || String(c[0].v).toLowerCase() === 'true') : false;
         const nome = c[1] && c[1].v ? String(c[1].v).trim() : '';
         const nivel = c[2] && c[2].v ? String(c[2].v).trim() : '';
-        const papel = c[3] && c[3].v ? String(c[3].v).trim() : '';
+        const papelRaw = c[3] && c[3].v ? String(c[3].v).trim() : '';
+        const papel = normalizePapel(papelRaw);
 
-        // Se tem nome e AVALIADO for FALSE, entra na fila
         if (nome && !avaliadoVal) {
           people.push({ nome, nivel, papel });
         }
@@ -347,7 +356,7 @@
         const avaliadoVal = cols[0].toUpperCase() === 'TRUE' || cols[0] === '1';
         const nome = cols[1];
         const nivel = cols[2];
-        const papel = cols[3];
+        const papel = normalizePapel(cols[3]);
 
         if (nome && !avaliadoVal) {
           people.push({ nome, nivel, papel });
@@ -374,7 +383,7 @@
 
     function renderDashboard(queue) {
       const currentHash = JSON.stringify(queue.slice(0, 3));
-      if (currentHash === lastRenderedHash) return; // Evita re-render desnecessário
+      if (currentHash === lastRenderedHash) return;
       lastRenderedHash = currentHash;
 
       const currentBox = document.getElementById('currentBox');
@@ -423,9 +432,10 @@
       }
     }
 
-    // Inicialização e atualização contínua a cada 3 segundos
     fetchData();
     setInterval(fetchData, 3000);
   </script>
 </body>
 </html>
+
+```
