@@ -31,46 +31,97 @@
       overflow: hidden;
     }
 
-    /* Painel de Controles Oculto (Aparece ao passar o mouse no canto superior direito) */
+    /* Painel de Controles (canto superior direito) */
     .controls-overlay {
       position: fixed;
       top: 10px;
       right: 10px;
-      opacity: 0.15;
+      opacity: 0.75;
       transition: opacity 0.3s ease;
       z-index: 100;
       background: rgba(4, 13, 22, 0.95);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      padding: 10px 14px;
+      border-radius: 14px;
+      padding: 7px 10px;
       display: flex;
       gap: 10px;
       align-items: center;
       backdrop-filter: blur(8px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45);
     }
-    .controls-overlay:hover {
+    .controls-overlay:hover,
+    .controls-overlay:focus-within {
       opacity: 1;
-    }
-    .controls-overlay select, .controls-overlay button {
-      background: #091d2d;
-      border: 1px solid #1c3c54;
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .controls-overlay button:hover {
-      background: #0077b6;
     }
     .status-dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
       background: #22c55e;
+      flex: 0 0 auto;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
     }
-    .status-dot.error { background: #ef4444; }
+    .status-dot.error {
+      background: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+    }
+
+    /* Seletor de dia (Terça / Quinta) */
+    .day-switch {
+      display: flex;
+      gap: 4px;
+      padding: 3px;
+      background: #06131f;
+      border: 1px solid #1c3c54;
+      border-radius: 999px;
+    }
+    .day-btn {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: #9fc4dc;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      padding: 7px 16px;
+      min-height: 34px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .day-btn:hover {
+      color: #ffffff;
+      background: rgba(0, 168, 232, 0.18);
+    }
+    .day-btn.active {
+      color: #ffffff;
+      background: linear-gradient(145deg, #00a8e8 0%, #0077b6 100%);
+      box-shadow: 0 2px 10px rgba(0, 168, 232, 0.5);
+    }
+    .day-btn:focus-visible {
+      outline: 2px solid #7dd3fc;
+      outline-offset: 2px;
+    }
+
+    .fullscreen-btn {
+      background: #091d2d;
+      border: 1px solid #1c3c54;
+      color: #fff;
+      padding: 8px 12px;
+      min-height: 34px;
+      border-radius: 8px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.18s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fullscreen-btn:hover {
+      background: #0077b6;
+    }
 
     /* Layout Principal */
     .dashboard-container {
@@ -250,16 +301,27 @@
       .block-header {
         font-size: clamp(1rem, 4.6vw, 1.5rem);
         letter-spacing: 0.05em;
-        margin-top: 30px;
+        margin-top: 42px;
         margin-bottom: 8px;
       }
       .controls-overlay {
-        padding: 6px 8px;
+        padding: 5px 7px;
         gap: 6px;
+        opacity: 0.85;
       }
-      .controls-overlay select, .controls-overlay button {
-        padding: 4px 8px;
-        font-size: 11px;
+      .day-switch {
+        padding: 2px;
+        gap: 2px;
+      }
+      .day-btn {
+        font-size: 12px;
+        padding: 6px 11px;
+        min-height: 32px;
+      }
+      .fullscreen-btn {
+        font-size: 12px;
+        padding: 6px 9px;
+        min-height: 32px;
       }
       .next-item {
         gap: 6px;
@@ -272,14 +334,14 @@
 </head>
 <body>
 
-  <!-- Controles ocultos no canto superior direito -->
+  <!-- Controles no canto superior direito -->
   <div class="controls-overlay">
-    <div id="statusDot" class="status-dot"></div>
-    <select id="sheetTabSelect" onchange="switchTab(this.value)">
-      <option value="Terça">Aba: Terça</option>
-      <option value="Quinta">Aba: Quinta</option>
-    </select>
-    <button onclick="toggleFullscreen()">Tela Cheia</button>
+    <div id="statusDot" class="status-dot" title="Conectado à planilha"></div>
+    <div class="day-switch" role="group" aria-label="Dia da aula">
+      <button type="button" class="day-btn" data-sheet="Terça" onclick="switchTab('Terça')">Terça</button>
+      <button type="button" class="day-btn" data-sheet="Quinta" onclick="switchTab('Quinta')">Quinta</button>
+    </div>
+    <button type="button" class="fullscreen-btn" onclick="toggleFullscreen()">Tela cheia</button>
   </div>
 
   <div class="dashboard-container">
@@ -300,12 +362,26 @@
 
   <script>
     const SPREADSHEET_ID = '1rcF9zIcaZmY9Lmyli1Sd59c84-RIDSZKkxvJYNn6ThM';
+    const SHEET_KEY = 'dashboardNivelamentoSheet';
     let currentSheetName = 'Terça';
     let lastRenderedHash = '';
+
+    try {
+      const savedSheet = localStorage.getItem(SHEET_KEY);
+      if (savedSheet === 'Terça' || savedSheet === 'Quinta') currentSheetName = savedSheet;
+    } catch (e) { /* localStorage indisponível */ }
+
+    function updateActiveTab() {
+      document.querySelectorAll('.day-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sheet === currentSheetName);
+      });
+    }
 
     function switchTab(val) {
       currentSheetName = val;
       lastRenderedHash = ''; // Força a atualização visual ao trocar de aba
+      try { localStorage.setItem(SHEET_KEY, val); } catch (e) { /* ignora */ }
+      updateActiveTab();
       fetchData();
     }
 
@@ -499,6 +575,7 @@
       }
     }
 
+    updateActiveTab();
     fetchData();
     setInterval(fetchData, 3000);
   </script>
