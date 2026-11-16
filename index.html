@@ -66,14 +66,26 @@
       box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
     }
 
-    /* Seletor de dia (Terça / Quinta) */
+    /* Seletor de dia (Terça / Quinta) - canto inferior direito */
     .day-switch {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      z-index: 100;
       display: flex;
       gap: 4px;
-      padding: 3px;
-      background: #06131f;
-      border: 1px solid #1c3c54;
+      padding: 4px;
+      background: rgba(4, 13, 22, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 999px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      opacity: 0.85;
+      transition: opacity 0.3s ease;
+    }
+    .day-switch:hover,
+    .day-switch:focus-within {
+      opacity: 1;
     }
     .day-btn {
       appearance: none;
@@ -302,6 +314,9 @@
 
     /* Ajustes para telas pequenas (celular) */
     @media (max-width: 600px) {
+      body {
+        padding-bottom: 56px;
+      }
       .block-header {
         font-size: clamp(1rem, 4.6vw, 1.5rem);
         letter-spacing: 0.05em;
@@ -314,8 +329,11 @@
         opacity: 0.85;
       }
       .day-switch {
+        bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+        right: 6px;
         padding: 2px;
         gap: 2px;
+        opacity: 0.8;
       }
       .day-btn {
         font-size: 12px;
@@ -341,11 +359,13 @@
   <!-- Controles no canto superior direito -->
   <div class="controls-overlay">
     <div id="statusDot" class="status-dot" title="Conectado à planilha"></div>
-    <div class="day-switch" role="group" aria-label="Dia da aula">
-      <button type="button" class="day-btn" data-sheet="Terça" onclick="switchTab('Terça')">Terça</button>
-      <button type="button" class="day-btn" data-sheet="Quinta" onclick="switchTab('Quinta')">Quinta</button>
-    </div>
     <button type="button" class="fullscreen-btn" onclick="toggleFullscreen()">Tela cheia</button>
+  </div>
+
+  <!-- Seletor de dia no canto inferior direito -->
+  <div class="day-switch" role="group" aria-label="Dia da aula">
+    <button type="button" class="day-btn" data-sheet="Terça" onclick="switchTab('Terça')">Terça</button>
+    <button type="button" class="day-btn" data-sheet="Quinta" onclick="switchTab('Quinta')">Quinta</button>
   </div>
 
   <div class="dashboard-container">
