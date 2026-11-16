@@ -6,6 +6,8 @@
   <title>Fila de Dança - Projetor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
   <style>
     * {
@@ -674,12 +676,24 @@
       }
     }
 
-    // Com o endpoint do Apps Script o intervalo é maior (cota de execuções)
-    const POLL_MS = USE_ENDPOINT ? 10000 : 3000;
+    // Frequência de atualização (ms). A aba do Apps Script tem cache próprio de 3s.
+    const POLL_MS = 3000;
+
+    // Loop sequencial: evita requisições empilhadas se uma demorar mais que o intervalo
+    async function pollLoop() {
+      if (!document.hidden) {
+        await fetchData();
+      }
+      setTimeout(pollLoop, POLL_MS);
+    }
+
+    // Ao voltar para a aba, busca na hora (não espera o próximo ciclo)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) fetchData();
+    });
 
     updateActiveTab();
-    fetchData();
-    setInterval(fetchData, POLL_MS);
+    pollLoop();
   </script>
 </body>
 </html>

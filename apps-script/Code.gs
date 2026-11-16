@@ -26,8 +26,9 @@ const SPREADSHEET_ID = '';
 // Opcional: se preencher, o site precisa enviar ?token=... (use o mesmo valor em DATA_TOKEN)
 const TOKEN = '';
 
-// Segundos de cache para não ler a planilha a cada requisição
-const CACHE_SECONDS = 10;
+// Segundos de cache para não ler a planilha a cada requisição.
+// Valores baixos = atualização mais rápida no telão; 0 desliga o cache.
+const CACHE_SECONDS = 3;
 
 // Quantas linhas no topo são inspecionadas para achar o cabeçalho
 const HEADER_SEARCH_ROWS = 10;
