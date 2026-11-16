@@ -19,12 +19,15 @@
       background-image: radial-gradient(circle at 50% 30%, #0d283e 0%, #040d16 100%);
       color: #ffffff;
       font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      height: 100vh;
+      height: 100dvh;
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 2vw;
+      padding: clamp(8px, 1.6vw, 28px);
       overflow: hidden;
     }
 
@@ -73,10 +76,11 @@
     .dashboard-container {
       width: 100%;
       max-width: 1400px;
+      flex: 1 1 auto;
+      min-height: 0;
+      min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 2vw;
-      height: 92vh;
       justify-content: center;
     }
 
@@ -91,67 +95,100 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      padding: 2vw;
+      padding: clamp(10px, 2vw, 32px);
       position: relative;
+      overflow: hidden;
+      width: 100%;
+      min-width: 0;
     }
 
     /* Bloco Principal: PRÓXIMOS A DANÇAR */
     .card-block.next {
-      flex: 1;
+      flex: 1 1 auto;
+      min-height: 0;
       border-color: #00a8e8;
       box-shadow: 0 0 40px rgba(0, 168, 232, 0.3);
     }
 
     .block-header {
+      flex: 0 0 auto;
       font-family: 'Outfit', sans-serif;
-      font-size: clamp(1.8rem, 2.8vw, 3.2rem);
+      font-size: clamp(1.4rem, 3.2vw, 3.2rem);
       font-weight: 900;
-      letter-spacing: 0.15em;
+      letter-spacing: 0.12em;
       color: #7dd3fc;
       text-transform: uppercase;
-      margin-bottom: 2.2vw;
+      margin-bottom: clamp(8px, 1.8vw, 28px);
       text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      line-height: 1.1;
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     /* Lista dos Próximos */
     .next-list {
+      --fit: 1;
+      flex: 1 1 auto;
+      min-height: 0;
+      min-width: 0;
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 2.2vw;
+      gap: clamp(6px, 1.4vw, 24px);
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
     .next-item {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 1.5vw;
+      gap: clamp(8px, 1.4vw, 22px);
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
       flex-wrap: wrap;
+      padding: clamp(4px, 0.8vw, 14px) 0;
+    }
+    .next-divider {
+      flex: 0 0 auto;
+      width: 92%;
+      height: 2px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, rgba(125,211,252,0) 0%, rgba(125,211,252,0.55) 50%, rgba(125,211,252,0) 100%);
     }
     .next-name {
       font-family: 'Outfit', sans-serif;
-      font-size: clamp(2.4rem, 4vw, 4.5rem);
+      font-size: calc(clamp(1.5rem, 5.5vw, 4.5rem) * var(--fit));
       font-weight: 800;
       color: #ffffff;
       text-transform: uppercase;
       letter-spacing: 0.03em;
       text-shadow: 0 3px 15px rgba(0,0,0,0.8);
+      line-height: 1.05;
+      max-width: 100%;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     /* Badges com Cores Fiéis à Planilha */
     .badge-group {
       display: flex;
-      gap: 1vw;
+      gap: clamp(6px, 1vw, 18px);
       align-items: center;
       justify-content: center;
       flex-wrap: wrap;
+      max-width: 100%;
+      min-width: 0;
     }
     .badge {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: clamp(1.1rem, 1.6vw, 1.8rem);
+      font-size: calc(clamp(0.85rem, 2vw, 1.8rem) * var(--fit, 1));
       font-weight: 800;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      text-align: center;
       padding: 0.4em 1.1em;
       border-radius: 50px;
       text-transform: uppercase;
@@ -183,10 +220,12 @@
     }
 
     .empty-state {
-      font-size: clamp(1.4rem, 2vw, 2.2rem);
+      font-size: clamp(1rem, 2.4vw, 2.2rem);
       color: #94a3b8;
       font-weight: 700;
       font-style: italic;
+      text-align: center;
+      padding: 0 4%;
     }
 
     /* Banner para aviso de erro de permissão */
@@ -204,6 +243,30 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.8);
       max-width: 90vw;
       text-align: center;
+    }
+
+    /* Ajustes para telas pequenas (celular) */
+    @media (max-width: 600px) {
+      .block-header {
+        font-size: clamp(1rem, 4.6vw, 1.5rem);
+        letter-spacing: 0.05em;
+        margin-top: 30px;
+        margin-bottom: 8px;
+      }
+      .controls-overlay {
+        padding: 6px 8px;
+        gap: 6px;
+      }
+      .controls-overlay select, .controls-overlay button {
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+      .next-item {
+        gap: 6px;
+      }
+      .badge-group {
+        gap: 5px;
+      }
     }
   </style>
 </head>
@@ -361,6 +424,7 @@
 
       if (queue.length === 0) {
         nextBox.innerHTML = `<div class="empty-state">Fila vazia ou todos já dançaram!</div>`;
+        autoScale();
         return;
       }
 
@@ -374,7 +438,55 @@
             ${p.nivel ? `<span class="badge ${getBadgeClass(p.nivel, 'nivel')}">${p.nivel}</span>` : ''}
           </div>
         </div>
-      `).join('');
+      `).join('<div class="next-divider"></div>');
+
+      autoScale();
+    }
+
+    // Autoescala: ajusta o tamanho da lista para caber inteira em qualquer tela
+    function autoScale() {
+      const card = document.querySelector('.card-block.next');
+      const box = document.getElementById('nextBox');
+      if (!card || !box) return;
+
+      const fits = (scale) => {
+        box.style.setProperty('--fit', scale);
+        const kids = Array.from(box.children);
+        if (!kids.length) return true;
+        const gap = parseFloat(getComputedStyle(box).rowGap) || 0;
+        const needed = kids.reduce((sum, el) => sum + el.getBoundingClientRect().height, 0)
+          + gap * (kids.length - 1);
+        if (needed > box.clientHeight + 1) return false;
+        const maxW = box.clientWidth + 1;
+        return Array.from(box.querySelectorAll('.next-name, .badge'))
+          .every(el => el.getBoundingClientRect().width <= maxW);
+      };
+
+      let lo = 0.25;
+      let hi = 4;
+      const maxScale = 4;
+
+      if (fits(maxScale)) {
+        box.style.setProperty('--fit', maxScale);
+        return;
+      }
+
+      for (let i = 0; i < 16; i++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
+      }
+      box.style.setProperty('--fit', lo);
+    }
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(autoScale, 120);
+    });
+    document.addEventListener('fullscreenchange', () => setTimeout(autoScale, 150));
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(autoScale);
     }
 
     function toggleFullscreen() {
