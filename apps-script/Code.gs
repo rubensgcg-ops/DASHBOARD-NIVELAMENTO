@@ -28,7 +28,8 @@ const TOKEN = '';
 
 // Segundos de cache para não ler a planilha a cada requisição.
 // Valores baixos = atualização mais rápida no telão; 0 desliga o cache.
-const CACHE_SECONDS = 3;
+// Com 7s aqui e o site consultando a cada 3s, a defasagem fica em ~4-11s.
+const CACHE_SECONDS = 7;
 
 // Quantas linhas no topo são inspecionadas para achar o cabeçalho
 const HEADER_SEARCH_ROWS = 10;

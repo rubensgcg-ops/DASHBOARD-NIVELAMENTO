@@ -39,5 +39,11 @@ nesse caso ela precisa estar compartilhada como *qualquer pessoa com o link*.
   endpoint inacessível sem o segredo.
 - Ao alterar o `Code.gs`, é preciso criar uma **nova implantação** (ou
   *Gerenciar implantações → editar → nova versão*) para valer.
-- O site consulta o endpoint a cada 10s (com a planilha pública, a cada 3s).
-- `CACHE_SECONDS` no `Code.gs` evita leituras repetidas na planilha.
+- O site consulta o endpoint a cada 3s e pausa quando a aba está em segundo plano.
+- `CACHE_SECONDS` no `Code.gs` (hoje **7s**) evita leituras repetidas na planilha.
+  Ajuste de velocidade:
+  - cache 7s + consulta 3s → defasagem de ~4 a 11s (configuração atual)
+  - cache 3s + consulta 3s → ~2 a 7s (mais requisições)
+  - cache 10s + consulta 10s → ~10 a 21s (mais econômico)
+- Para mudar a frequência, edite `POLL_MS` no `index.html`; para mudar o cache,
+  edite `CACHE_SECONDS` no `Code.gs` e publique uma nova versão.
