@@ -386,6 +386,14 @@
 
   <script>
     const SPREADSHEET_ID = '1n0Gol1AKGgOqrZRzl0juprxCURM4k-WUxQ0KH3iXnt0';
+
+    // Endpoint do Apps Script (código em apps-script/Code.gs).
+    // Cole aqui a URL /exec gerada na implantação. Enquanto o placeholder
+    // estiver lá, o site lê a planilha direto (que então precisa ser pública).
+    const DATA_ENDPOINT = 'https://script.google.com/macros/s/SEU_DEPLOYMENT_ID/exec';
+    const DATA_TOKEN = ''; // opcional: mesmo valor de TOKEN no Code.gs
+    const USE_ENDPOINT = DATA_ENDPOINT.indexOf('SEU_DEPLOYMENT_ID') === -1;
+
     const SHEET_KEY = 'dashboardNivelamentoSheet';
     let currentSheetName = 'Terça';
     let lastRenderedHash = '';
@@ -409,7 +417,74 @@
       fetchData();
     }
 
+    function endpointUrl(sheetName, callback) {
+      const params = new URLSearchParams({ sheet: sheetName });
+      if (DATA_TOKEN) params.set('token', DATA_TOKEN);
+      if (callback) params.set('callback', callback);
+      const sep = DATA_ENDPOINT.indexOf('?') === -1 ? '?' : '&';
+      return DATA_ENDPOINT + sep + params.toString();
+    }
+
+    function rowsFromPayload(payload) {
+      if (!payload || payload.error) throw new Error(payload.error || 'Resposta inválida');
+      if (!Array.isArray(payload.rows)) throw new Error('Resposta sem lista de linhas');
+      return payload.rows
+        .filter(r => r && r.nome)
+        .map(r => ({
+          nome: String(r.nome).trim(),
+          nivel: String(r.nivel || '').trim(),
+          papel: normalizePapel(r.papel)
+        }));
+    }
+
+    async function fetchFromEndpoint(sheetName) {
+      const res = await fetch(endpointUrl(sheetName), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return rowsFromPayload(await res.json());
+    }
+
+    // Plano B caso o navegador bloqueie o CORS do Apps Script
+    function fetchFromEndpointJSONP(sheetName) {
+      return new Promise((resolve, reject) => {
+        const cb = '__dashboardNivelamento' + Date.now();
+        const script = document.createElement('script');
+        const timer = setTimeout(() => { cleanup(); reject(new Error('timeout JSONP')); }, 10000);
+
+        function cleanup() {
+          clearTimeout(timer);
+          try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[cb] = payload => { cleanup(); resolve(payload); };
+        script.onerror = () => { cleanup(); reject(new Error('falha no JSONP')); };
+        script.src = endpointUrl(sheetName, cb);
+        document.head.appendChild(script);
+      });
+    }
+
+    function applyPeople(people) {
+      renderDashboard(people);
+      document.getElementById('statusDot').classList.remove('error');
+      document.getElementById('errorBanner').style.display = 'none';
+    }
+
     async function fetchData() {
+      if (USE_ENDPOINT) {
+        try {
+          applyPeople(await fetchFromEndpoint(currentSheetName));
+          return;
+        } catch (err) {
+          console.warn('Endpoint do Apps Script falhou, tentando JSONP...', err);
+          try {
+            applyPeople(rowsFromPayload(await fetchFromEndpointJSONP(currentSheetName)));
+            return;
+          } catch (err2) {
+            console.warn('JSONP falhou, tentando planilha pública...', err2);
+          }
+        }
+      }
+
       // Passa o parâmetro `sheet` com o nome exato da aba selecionada
       const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent(currentSheetName)}&tqx=out:json&tq=${encodeURIComponent('SELECT A, B, C, D')}`;
       
@@ -599,9 +674,12 @@
       }
     }
 
+    // Com o endpoint do Apps Script o intervalo é maior (cota de execuções)
+    const POLL_MS = USE_ENDPOINT ? 10000 : 3000;
+
     updateActiveTab();
     fetchData();
-    setInterval(fetchData, 3000);
+    setInterval(fetchData, POLL_MS);
   </script>
 </body>
 </html>
