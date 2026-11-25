@@ -411,7 +411,7 @@
     // Endpoint do Apps Script (código em apps-script/Code.gs).
     // Cole aqui a URL /exec gerada na implantação. Enquanto o placeholder
     // estiver lá, o site lê a planilha direto (que então precisa ser pública).
-    const DATA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz8R_TgMQ8F3ljTlZI8ZmjenjwPoomWz4dImLOAfqF7bUrpa62mXh3IW1qOwNgAqTQ/exec';
+    const DATA_ENDPOINT = 'https://script.google.com/macros/s/AKfycbymxt3WE3eEW_MCJjA2kcw2xkEZImSvEG9H9UqTqrUe2KftRga1ZrjKAoHKTHBEgn43/exec';
     const DATA_TOKEN = ''; // opcional: mesmo valor de TOKEN no Code.gs
     const USE_ENDPOINT = DATA_ENDPOINT.indexOf('SEU_DEPLOYMENT_ID') === -1;
 
@@ -485,8 +485,8 @@
       });
     }
 
-    function applyPeople(people) {
-      renderDashboard(people);
+    function applyPeople(people, sheetName) {
+      renderDashboard(people, sheetName);
       document.getElementById('statusDot').classList.remove('error');
       document.getElementById('errorBanner').style.display = 'none';
     }
@@ -512,26 +512,35 @@
     }
 
     async function fetchData() {
+      // Fixa a aba desta consulta: se o usuário trocar de aba no meio,
+      // a resposta atrasada é descartada em vez de aparecer na aba errada.
+      const sheetName = currentSheetName;
+      const isStale = () => sheetName !== currentSheetName;
       let endpointError = null;
 
       if (USE_ENDPOINT) {
         try {
-          applyPeople(await fetchFromEndpoint(currentSheetName));
+          const people = await fetchFromEndpoint(sheetName);
+          if (isStale()) return;
+          applyPeople(people, sheetName);
           return;
         } catch (err) {
           endpointError = err;
           console.warn('Endpoint do Apps Script falhou, tentando JSONP...', err);
           try {
-            applyPeople(rowsFromPayload(await fetchFromEndpointJSONP(currentSheetName)));
+            const payload = await fetchFromEndpointJSONP(sheetName);
+            if (isStale()) return;
+            applyPeople(rowsFromPayload(payload), sheetName);
             return;
           } catch (err2) {
             console.warn('JSONP falhou, tentando planilha pública...', err2);
           }
         }
       }
+      if (isStale()) return;
 
       // Passa o parâmetro `sheet` com o nome exato da aba selecionada
-      const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent(currentSheetName)}&tqx=out:json&tq=${encodeURIComponent('SELECT A, B, C, D, E')}`;
+      const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=out:json&tq=${encodeURIComponent('SELECT A, B, C, D, E')}`;
       
       try {
         const res = await fetch(gvizUrl);
@@ -545,22 +554,24 @@
         const data = JSON.parse(jsonMatch[1]);
         if (data.status === 'error') throw new Error('Acesso negado ou aba inválida');
         
-        parseGVizData(data);
+        if (isStale()) return;
+        parseGVizData(data, sheetName);
         document.getElementById('statusDot').classList.remove('error');
         document.getElementById('errorBanner').style.display = 'none';
       } catch (err) {
         console.warn('Erro GViz, tentando fallback CSV...', err);
-        fetchCSVFallback(endpointError);
+        fetchCSVFallback(endpointError, sheetName);
       }
     }
 
-    async function fetchCSVFallback(endpointError) {
-      const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(currentSheetName)}`;
+    async function fetchCSVFallback(endpointError, sheetName) {
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName || currentSheetName)}`;
       try {
-        const res = await fetch(csvUrl);
+        const res = await fetch(url);
         if (!res.ok) throw new Error('CSV negado');
         const text = await res.text();
-        parseCSVData(text);
+        if (sheetName && sheetName !== currentSheetName) return; // trocou de aba
+        parseCSVData(text, sheetName);
         document.getElementById('statusDot').classList.remove('error');
         document.getElementById('errorBanner').style.display = 'none';
       } catch (e) {
@@ -596,7 +607,7 @@
 
     // Turma -> cor. Guarda em localStorage por aba para a cor de cada turma
     // não mudar quando a turma sai e volta (ex.: todos da turma já dançaram).
-    const TURMA_COLORS_KEY = 'dashboardNivelamentoTurmaColors';
+    const TURMA_COLORS_KEY = 'dashboardNivelamentoTurmaColorsV2';
     let turmaColorMap = loadTurmaColors();
 
     function loadTurmaColors() {
@@ -612,16 +623,16 @@
       try { localStorage.setItem(TURMA_COLORS_KEY, JSON.stringify(turmaColorMap)); } catch (e) { /* ignora */ }
     }
 
-    function turmaKey(turma) {
-      return currentSheetName + '|' + turma;
+    function turmaKey(turma, sheetName) {
+      return (sheetName || currentSheetName) + '|' + turma;
     }
 
     // Cria a cor de cada turma ainda não vista, na ordem em que aparecem na fila.
-    function assignTurmaColors(queue) {
+    function assignTurmaColors(queue, sheetName) {
       let changed = false;
       queue.forEach(p => {
         if (!p.turma) return;
-        const key = turmaKey(p.turma);
+        const key = turmaKey(p.turma, sheetName);
         if (!Object.prototype.hasOwnProperty.call(turmaColorMap, key)) {
           turmaColorMap[key] = Object.keys(turmaColorMap).length % TURMA_COLORS.length;
           changed = true;
@@ -630,13 +641,13 @@
       if (changed) saveTurmaColors();
     }
 
-    function turmaColor(turma) {
-      const index = turmaColorMap[turmaKey(turma)];
+    function turmaColor(turma, sheetName) {
+      const index = turmaColorMap[turmaKey(turma, sheetName)];
       return TURMA_COLORS[typeof index === 'number' ? index : 0];
     }
 
-    function turmaBadgeStyle(turma) {
-      const color = turmaColor(turma);
+    function turmaBadgeStyle(turma, sheetName) {
+      const color = turmaColor(turma, sheetName);
       return `--turma-bg:${color.bg};--turma-fg:${color.fg}`;
     }
 
@@ -664,7 +675,7 @@
     // Layout antigo (sem cabeçalho): A=Avaliado, B=Nome, C=Nível, D=Papel, E=Turma
     const LEGACY_TURMA_COLUMN = 4;
 
-    function parseGVizData(data) {
+    function parseGVizData(data, sheetName) {
       const rows = data.table.rows;
       const turmaCol = findTurmaColumn((data.table.cols || []).map(c => c && c.label));
       const turmaIndex = turmaCol >= 0 ? turmaCol : LEGACY_TURMA_COLUMN;
@@ -689,7 +700,7 @@
         }
       });
 
-      renderDashboard(people);
+      renderDashboard(people, sheetName);
     }
 
     function cellText(cell) {
@@ -698,7 +709,7 @@
       return String(cell.f || cell.v).trim();
     }
 
-    function parseCSVData(csvText) {
+    function parseCSVData(csvText, sheetName) {
       const lines = csvText.split('\n');
       const people = [];
       // Cabeçalho sem acento para achar a coluna da turma ("Turma/Horário")
@@ -725,7 +736,7 @@
         }
       }
 
-      renderDashboard(people);
+      renderDashboard(people, sheetName);
     }
 
     // Quebra uma linha CSV respeitando campos entre aspas (nomes de turma
@@ -769,13 +780,14 @@
       return '';
     }
 
-    function renderDashboard(queue) {
-      const currentHash = currentSheetName + JSON.stringify(queue.slice(0, 3));
+    function renderDashboard(queue, sheetName) {
+      const day = sheetName || currentSheetName;
+      const currentHash = day + JSON.stringify(queue.slice(0, 3));
       if (currentHash === lastRenderedHash) return;
       lastRenderedHash = currentHash;
 
       const turmaList = queue.slice(0, 3).map(p => p.turma);
-      if (turmaList.some(Boolean)) assignTurmaColors(queue);
+      if (turmaList.some(Boolean)) assignTurmaColors(queue, day);
 
       const nextBox = document.getElementById('nextBox');
 
@@ -790,7 +802,7 @@
       nextBox.innerHTML = nextPeople.map(p => `
         <div class="next-item">
           <span class="next-name">${escapeHtml(p.nome)}</span>
-          ${p.turma ? `<span class="badge badge-turma" style="${turmaBadgeStyle(p.turma)}" title="Turma">${escapeHtml(p.turma)}</span>` : ''}
+          ${p.turma ? `<span class="badge badge-turma" style="${turmaBadgeStyle(p.turma, day)}" title="Turma">${escapeHtml(p.turma)}</span>` : ''}
           <div class="badge-group">
             ${p.papel ? `<span class="badge ${getBadgeClass(p.papel, 'papel')}">${escapeHtml(p.papel)}</span>` : ''}
             ${p.nivel ? `<span class="badge ${getBadgeClass(p.nivel, 'nivel')}">${escapeHtml(p.nivel)}</span>` : ''}
