@@ -321,6 +321,13 @@
       max-width: 90vw;
       text-align: center;
     }
+    .banner-detail {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0.85;
+    }
 
     /* Ajustes para telas pequenas (celular) */
     @media (max-width: 600px) {
@@ -394,7 +401,8 @@
   </div>
 
   <div id="errorBanner" class="banner-error">
-    ⚠️ <strong>Atenção:</strong> Não foi possível carregar a planilha do Google. Certifique-se de que a opção <em>"Qualquer pessoa com o link pode ver"</em> está ativada no compartilhamento.
+    ⚠️ <strong>Atenção:</strong> Não foi possível carregar a planilha do Google.
+    <span id="errorDetail" class="banner-detail"></span>
   </div>
 
   <script>
@@ -483,12 +491,35 @@
       document.getElementById('errorBanner').style.display = 'none';
     }
 
+    function showError(detail) {
+      const el = document.getElementById('errorDetail');
+      if (el) el.textContent = detail || '';
+      document.getElementById('statusDot').classList.add('error');
+      document.getElementById('errorBanner').style.display = 'block';
+    }
+
+    // Traduz a falha em uma pista útil no telão (o 404 é o caso mais comum:
+    // a implantação do Apps Script foi excluída ou trocada por outra URL)
+    function describeError(err) {
+      const msg = String((err && err.message) || err || '');
+      if (msg.indexOf('404') !== -1) {
+        return 'O link do Apps Script respondeu 404 (implantação não encontrada). Publique de novo e atualize DATA_ENDPOINT no index.html.';
+      }
+      if (msg.indexOf('401') !== -1 || msg.indexOf('403') !== -1) {
+        return 'A planilha recusou o acesso (' + msg + '). Verifique o compartilhamento ou o endpoint.';
+      }
+      return msg ? 'Detalhe: ' + msg : '';
+    }
+
     async function fetchData() {
+      let endpointError = null;
+
       if (USE_ENDPOINT) {
         try {
           applyPeople(await fetchFromEndpoint(currentSheetName));
           return;
         } catch (err) {
+          endpointError = err;
           console.warn('Endpoint do Apps Script falhou, tentando JSONP...', err);
           try {
             applyPeople(rowsFromPayload(await fetchFromEndpointJSONP(currentSheetName)));
@@ -500,7 +531,7 @@
       }
 
       // Passa o parâmetro `sheet` com o nome exato da aba selecionada
-      const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent(currentSheetName)}&tqx=out:json&tq=${encodeURIComponent('SELECT A, B, C, D')}`;
+      const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent(currentSheetName)}&tqx=out:json&tq=${encodeURIComponent('SELECT A, B, C, D, E')}`;
       
       try {
         const res = await fetch(gvizUrl);
@@ -519,11 +550,11 @@
         document.getElementById('errorBanner').style.display = 'none';
       } catch (err) {
         console.warn('Erro GViz, tentando fallback CSV...', err);
-        fetchCSVFallback();
+        fetchCSVFallback(endpointError);
       }
     }
 
-    async function fetchCSVFallback() {
+    async function fetchCSVFallback(endpointError) {
       const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(currentSheetName)}`;
       try {
         const res = await fetch(csvUrl);
@@ -533,8 +564,8 @@
         document.getElementById('statusDot').classList.remove('error');
         document.getElementById('errorBanner').style.display = 'none';
       } catch (e) {
-        document.getElementById('statusDot').classList.add('error');
-        document.getElementById('errorBanner').style.display = 'block';
+        // O erro do endpoint é mais informativo que o do CSV
+        showError(describeError(endpointError || e));
       }
     }
 
