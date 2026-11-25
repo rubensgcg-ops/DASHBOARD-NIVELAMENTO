@@ -210,13 +210,15 @@
     }
     .next-item {
       display: flex;
+      /* Nome em cima; as pills (turma, papel, nível) sempre abaixo dele */
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: clamp(8px, 1.4vw, 22px);
+      gap: clamp(5px, 0.9vw, 14px);
       width: 100%;
       max-width: 100%;
       min-width: 0;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       padding: clamp(4px, 0.8vw, 14px) 0;
     }
     .next-divider {
@@ -802,8 +804,8 @@
       nextBox.innerHTML = nextPeople.map(p => `
         <div class="next-item">
           <span class="next-name">${escapeHtml(p.nome)}</span>
-          ${p.turma ? `<span class="badge badge-turma" style="${turmaBadgeStyle(p.turma, day)}" title="Turma">${escapeHtml(p.turma)}</span>` : ''}
           <div class="badge-group">
+            ${p.turma ? `<span class="badge badge-turma" style="${turmaBadgeStyle(p.turma, day)}" title="Turma">${escapeHtml(p.turma)}</span>` : ''}
             ${p.papel ? `<span class="badge ${getBadgeClass(p.papel, 'papel')}">${escapeHtml(p.papel)}</span>` : ''}
             ${p.nivel ? `<span class="badge ${getBadgeClass(p.nivel, 'nivel')}">${escapeHtml(p.nivel)}</span>` : ''}
           </div>
