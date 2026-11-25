@@ -288,6 +288,14 @@
       color: #4a154b; 
     }
 
+    /* Badge da turma do aluno: cada turma recebe uma cor (ver TURMA_COLORS no JS) */
+    .badge-turma {
+      background-color: var(--turma-bg, #334155);
+      color: var(--turma-fg, #ffffff);
+      border-color: rgba(0, 0, 0, 0.18);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 4px 0 0 rgba(0, 0, 0, 0.22);
+    }
+
     .empty-state {
       font-size: clamp(1rem, 2.4vw, 2.2rem);
       color: #94a3b8;
@@ -352,6 +360,9 @@
       }
       .badge-group {
         gap: 5px;
+      }
+      .badge-turma {
+        padding: 0.32em 0.85em;
       }
     }
   </style>
@@ -435,7 +446,8 @@
         .map(r => ({
           nome: String(r.nome).trim(),
           nivel: String(r.nivel || '').trim(),
-          papel: normalizePapel(r.papel)
+          papel: normalizePapel(r.papel),
+          turma: String(r.turma || '').trim()
         }));
     }
 
@@ -534,47 +546,181 @@
       return text.toUpperCase();
     }
 
+    // Uma cor por turma: atribuída na ordem em que as turmas aparecem na planilha.
+    // Tons diferentes das cores de nível/papel e legíveis sobre o fundo azul.
+    const TURMA_COLORS = [
+      { bg: '#00a8e8', fg: '#022331' }, // azul
+      { bg: '#4ade80', fg: '#052e16' }, // verde
+      { bg: '#fbbf24', fg: '#3b2500' }, // âmbar
+      { bg: '#c084fc', fg: '#2e1065' }, // violeta
+      { bg: '#fb7185', fg: '#4c0519' }, // coral
+      { bg: '#22d3ee', fg: '#083344' }, // ciano
+      { bg: '#f97316', fg: '#3a1300' }, // laranja
+      { bg: '#a3e635', fg: '#1a2e05' }, // limão
+      { bg: '#f472b6', fg: '#500724' }, // rosa
+      { bg: '#93c5fd', fg: '#172554' }, // azul claro
+      { bg: '#2dd4bf', fg: '#042f2e' }, // turquesa
+      { bg: '#e879f9', fg: '#4a044e' }  // magenta
+    ];
+
+    // Turma -> cor. Guarda em localStorage por aba para a cor de cada turma
+    // não mudar quando a turma sai e volta (ex.: todos da turma já dançaram).
+    const TURMA_COLORS_KEY = 'dashboardNivelamentoTurmaColors';
+    let turmaColorMap = loadTurmaColors();
+
+    function loadTurmaColors() {
+      try {
+        const raw = localStorage.getItem(TURMA_COLORS_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+      } catch (e) { /* localStorage indisponível */ }
+      return {};
+    }
+
+    function saveTurmaColors() {
+      try { localStorage.setItem(TURMA_COLORS_KEY, JSON.stringify(turmaColorMap)); } catch (e) { /* ignora */ }
+    }
+
+    function turmaKey(turma) {
+      return currentSheetName + '|' + turma;
+    }
+
+    // Cria a cor de cada turma ainda não vista, na ordem em que aparecem na fila.
+    function assignTurmaColors(queue) {
+      let changed = false;
+      queue.forEach(p => {
+        if (!p.turma) return;
+        const key = turmaKey(p.turma);
+        if (!Object.prototype.hasOwnProperty.call(turmaColorMap, key)) {
+          turmaColorMap[key] = Object.keys(turmaColorMap).length % TURMA_COLORS.length;
+          changed = true;
+        }
+      });
+      if (changed) saveTurmaColors();
+    }
+
+    function turmaColor(turma) {
+      const index = turmaColorMap[turmaKey(turma)];
+      return TURMA_COLORS[typeof index === 'number' ? index : 0];
+    }
+
+    function turmaBadgeStyle(turma) {
+      const color = turmaColor(turma);
+      return `--turma-bg:${color.bg};--turma-fg:${color.fg}`;
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[ch]);
+    }
+
+    // Acha a coluna pelo cabeçalho (a posição das colunas pode mudar na planilha)
+    function findTurmaColumn(headers) {
+      if (!Array.isArray(headers)) return -1;
+      const clean = s => String(s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, '').trim();
+      // "turma"/"classe" primeiro: não confundir com "Turma/Horário"
+      for (let i = 0; i < headers.length; i++) {
+        const h = clean(headers[i]);
+        if (h === 'turma' || h === 'classe') return i;
+      }
+      return headers.findIndex(h => {
+        const c = clean(h);
+        return c.includes('turma') || c.includes('classe') || c.includes('horario');
+      });
+    }
+
+    // Layout antigo (sem cabeçalho): A=Avaliado, B=Nome, C=Nível, D=Papel, E=Turma
+    const LEGACY_TURMA_COLUMN = 4;
+
     function parseGVizData(data) {
       const rows = data.table.rows;
+      const turmaCol = findTurmaColumn((data.table.cols || []).map(c => c && c.label));
+      const turmaIndex = turmaCol >= 0 ? turmaCol : LEGACY_TURMA_COLUMN;
       const people = [];
+      const headerNames = (data.table.cols || []).map(c => c && c.label).filter(Boolean);
 
       rows.forEach(r => {
         const c = r.c;
         if (!c) return;
-        
+
+        // Pula a linha de cabeçalho, caso a planilha não tenha sido demarcada como tal
+        if (headerNames.length && cellText(c[1]) && headerNames.indexOf(cellText(c[1])) !== -1) return;
+
         const avaliadoVal = c[0] ? (c[0].v === true || String(c[0].v).toLowerCase() === 'true') : false;
-        const nome = c[1] && c[1].v ? String(c[1].v).trim() : '';
-        const nivel = c[2] && c[2].v ? String(c[2].v).trim() : '';
-        const papelRaw = c[3] && c[3].v ? String(c[3].v).trim() : '';
-        const papel = normalizePapel(papelRaw);
+        const nome = cellText(c[1]);
+        const nivel = cellText(c[2]);
+        const papel = normalizePapel(cellText(c[3]));
+        const turma = cellText(c[turmaIndex]);
 
         if (nome && !avaliadoVal) {
-          people.push({ nome, nivel, papel });
+          people.push({ nome, nivel, papel, turma });
         }
       });
 
       renderDashboard(people);
     }
 
+    function cellText(cell) {
+      if (!cell || cell.v === null || cell.v === undefined) return '';
+      // Células de data/hora vêm com o valor formatado em `f`
+      return String(cell.f || cell.v).trim();
+    }
+
     function parseCSVData(csvText) {
       const lines = csvText.split('\n');
       const people = [];
+      // Cabeçalho sem acento para achar a coluna da turma ("Turma/Horário")
+      const header = splitCSVLine(lines[0] || '').map(h =>
+        h.normalize("NFD").replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      );
+      const turmaFromHeader = header.findIndex(h =>
+        h.includes('turma') || h.includes('classe') || h.includes('horario')
+      );
+      const turmaIndex = turmaFromHeader >= 0 ? turmaFromHeader : LEGACY_TURMA_COLUMN;
 
       for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(s => s.replace(/^"(.*)"$/, '$1').trim());
+        const cols = splitCSVLine(lines[i]);
         if (cols.length < 4) continue;
 
         const avaliadoVal = cols[0].toUpperCase() === 'TRUE' || cols[0] === '1';
         const nome = cols[1];
         const nivel = cols[2];
         const papel = normalizePapel(cols[3]);
+        const turma = cols[turmaIndex] || '';
 
         if (nome && !avaliadoVal) {
-          people.push({ nome, nivel, papel });
+          people.push({ nome, nivel, papel, turma });
         }
       }
 
       renderDashboard(people);
+    }
+
+    // Quebra uma linha CSV respeitando campos entre aspas (nomes de turma
+    // como "Turma A, Terça" também funcionam)
+    function splitCSVLine(line) {
+      const out = [];
+      let cur = '';
+      let quoted = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (quoted) {
+          if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+          else if (ch === '"') quoted = false;
+          else cur += ch;
+        } else if (ch === '"') {
+          quoted = true;
+        } else if (ch === ',') {
+          out.push(cur.trim());
+          cur = '';
+        } else if (ch !== '\r') {
+          cur += ch;
+        }
+      }
+      out.push(cur.trim());
+      return out;
     }
 
     function getBadgeClass(text, type) {
@@ -593,9 +739,12 @@
     }
 
     function renderDashboard(queue) {
-      const currentHash = JSON.stringify(queue.slice(0, 3));
+      const currentHash = currentSheetName + JSON.stringify(queue.slice(0, 3));
       if (currentHash === lastRenderedHash) return;
       lastRenderedHash = currentHash;
+
+      const turmaList = queue.slice(0, 3).map(p => p.turma);
+      if (turmaList.some(Boolean)) assignTurmaColors(queue);
 
       const nextBox = document.getElementById('nextBox');
 
@@ -609,10 +758,11 @@
       const nextPeople = queue.slice(0, 3);
       nextBox.innerHTML = nextPeople.map(p => `
         <div class="next-item">
-          <span class="next-name">${p.nome}</span>
+          <span class="next-name">${escapeHtml(p.nome)}</span>
+          ${p.turma ? `<span class="badge badge-turma" style="${turmaBadgeStyle(p.turma)}" title="Turma">${escapeHtml(p.turma)}</span>` : ''}
           <div class="badge-group">
-            ${p.papel ? `<span class="badge ${getBadgeClass(p.papel, 'papel')}">${p.papel}</span>` : ''}
-            ${p.nivel ? `<span class="badge ${getBadgeClass(p.nivel, 'nivel')}">${p.nivel}</span>` : ''}
+            ${p.papel ? `<span class="badge ${getBadgeClass(p.papel, 'papel')}">${escapeHtml(p.papel)}</span>` : ''}
+            ${p.nivel ? `<span class="badge ${getBadgeClass(p.nivel, 'nivel')}">${escapeHtml(p.nivel)}</span>` : ''}
           </div>
         </div>
       `).join('<div class="next-divider"></div>');

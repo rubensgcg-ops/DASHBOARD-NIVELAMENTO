@@ -34,11 +34,18 @@ nesse caso ela precisa estar compartilhada como *qualquer pessoa com o link*.
 - Nomes das abas precisam ser exatamente `Terça` e `Quinta`
   (ajuste `SHEET_NAMES` no `Code.gs` se mudar).
 - Colunas lidas: **A** = Avaliado (TRUE/FALSE), **B** = Nome,
-  **C** = Nível, **D** = Papel. A primeira linha é cabeçalho.
+  **C** = Nível, **D** = Papel, **E** = Turma. A primeira linha é cabeçalho.
+- O site mostra a turma do aluno ao lado do nome, com uma cor por turma
+  (`TURMA_COLORS` no `index.html`). As cores são atribuídas na ordem em que
+  as turmas aparecem na planilha e ficam lembradas no navegador, para não
+  mudarem quando uma turma sai da fila.
 - `TOKEN` no `Code.gs` + `DATA_TOKEN` no `index.html` (mesmo valor) deixam o
   endpoint inacessível sem o segredo.
 - Ao alterar o `Code.gs`, é preciso criar uma **nova implantação** (ou
   *Gerenciar implantações → editar → nova versão*) para valer.
+- **A turma só aparece no site depois de publicar o `Code.gs` atualizado**:
+  a versão em produção ainda não lê a coluna *Turma*. Sem isso, a turma fica
+  em branco e o nome/badges funcionam como antes.
 - O site consulta o endpoint a cada 3s e pausa quando a aba está em segundo plano.
 - `CACHE_SECONDS` no `Code.gs` (hoje **7s**) evita leituras repetidas na planilha.
   Ajuste de velocidade:

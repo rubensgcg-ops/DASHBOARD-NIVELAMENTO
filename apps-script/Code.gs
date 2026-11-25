@@ -8,12 +8,12 @@
  * Copie a URL que termina em /exec e cole em DATA_ENDPOINT no index.html.
  *
  * A planilha continua privada: o script roda com a sua conta e devolve
- * apenas os dados da fila (nome, nível e papel).
+ * apenas os dados da fila (nome, nível, papel e turma).
  *
  * O script encontra o cabeçalho e as colunas pelo texto do cabeçalho,
- * então a ordem das colunas pode mudar (Nome, Nível, Papel, Avaliado...).
+ * então a ordem das colunas pode mudar (Nome, Nível, Papel, Turma, Avaliado...).
  * Se não houver cabeçalho, assume o layout antigo: A=Avaliado, B=Nome,
- * C=Nível, D=Papel, com dados a partir da linha 2.
+ * C=Nível, D=Papel, E=Turma, com dados a partir da linha 2.
  */
 
 // Abas usadas pelo seletor do dashboard (a aba "Dados Alunos Nivelamento" é ignorada)
@@ -35,7 +35,7 @@ const CACHE_SECONDS = 7;
 const HEADER_SEARCH_ROWS = 10;
 
 // Layout usado quando não há cabeçalho reconhecível
-const LEGACY_COLUMNS = { avaliado: 0, nome: 1, nivel: 2, papel: 3 };
+const LEGACY_COLUMNS = { avaliado: 0, nome: 1, nivel: 2, papel: 3, turma: 4 };
 
 function doGet(e) {
   var p = (e && e.parameter) || {};
@@ -104,7 +104,8 @@ function readSheet_(sheetName) {
     rows.push({
       nome: nome,
       nivel: text_(line[cols.nivel]),
-      papel: text_(line[cols.papel])
+      papel: text_(line[cols.papel]),
+      turma: cols.turma >= 0 ? text_(line[cols.turma]) : ''
     });
   }
 
@@ -160,7 +161,7 @@ function findHeaderRow_(values) {
 }
 
 function mapColumns_(headerRow) {
-  var cols = { avaliado: -1, nome: -1, nivel: -1, papel: -1 };
+  var cols = { avaliado: -1, nome: -1, nivel: -1, papel: -1, turma: -1 };
 
   headerRow.forEach(function (cell, index) {
     var h = normalize_(cell);
@@ -172,6 +173,11 @@ function mapColumns_(headerRow) {
       cols.nivel = index;
     } else if (cols.papel < 0 && (h.indexOf('papel') !== -1 || h.indexOf('funcao') !== -1)) {
       cols.papel = index;
+    } else if (cols.turma < 0 && (h.indexOf('turma') !== -1 || h.indexOf('classe') !== -1)) {
+      cols.turma = index;
+    } else if (cols.turma < 0 && h.indexOf('horario') !== -1) {
+      // Aba com o horário como identificação da turma (ex.: "Terça 18:00")
+      cols.turma = index;
     } else if (cols.avaliado < 0 && (
       h.indexOf('avalia') !== -1 ||
       h.indexOf('danc') !== -1 ||
@@ -187,6 +193,7 @@ function mapColumns_(headerRow) {
   if (cols.nome < 0) cols.nome = LEGACY_COLUMNS.nome;
   if (cols.nivel < 0) cols.nivel = LEGACY_COLUMNS.nivel;
   if (cols.papel < 0) cols.papel = LEGACY_COLUMNS.papel;
+  if (cols.turma < 0) cols.turma = LEGACY_COLUMNS.turma;
   if (cols.avaliado < 0) cols.avaliado = LEGACY_COLUMNS.avaliado;
 
   return cols;
